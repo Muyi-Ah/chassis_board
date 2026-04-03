@@ -1,0 +1,22 @@
+# build dir
+build/
+
+# IDE
+.settings/
+.vscode/
+
+# mx tool cache
+.mxproject
+
+# embedded build outputs (防误提交)
+*.o
+*.d
+*.elf
+*.map
+*.hex
+*.bin
+*.lst
+
+# OS
+.DS_Store
+Thumbs.db
