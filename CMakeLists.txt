@@ -55,6 +55,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/User/Component/router.c
     ${CMAKE_CURRENT_SOURCE_DIR}/User/Component/device_instance.c
     ${CMAKE_CURRENT_SOURCE_DIR}/User/Component/user_register.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/User/Component/filter_lpf1.c
     ${CMAKE_CURRENT_SOURCE_DIR}/User/Application/run.c
     ${CMAKE_CURRENT_SOURCE_DIR}/User/Application/init.c
 )

@@ -1,6 +1,13 @@
 #include "device_instance.h"
 #include "device_dr16.h"
+#include "filter_lpf1.h"
 
+// 低通滤波器虚函数表实例
+LPF1_vtable_t lpf1_vtable = {
+    .compute = LPF1_compute // 低通滤波器计算函数指针
+};
+
+// 电机虚函数表实例
 Motor_vtable_t motor_vtable = {
     .data_update = Motor_DataUpdate, // 电机数据更新函数指针
     .set_speed_rpm = Motor_SetSpeedRPM, // 设置电机速度函数指针
@@ -11,46 +18,87 @@ Motor_vtable_t motor_vtable = {
     .get_current = Motor_GetCurrent // 获取电机电流函数指针
 };
 
+// 电机1实例
 Motor_t motor1 = {
+    .lpf1_rpm = {
+        .alpha = 0.2f, // 低通滤波器的平滑因子，取值范围为0到1
+        .input = 0, // 初始输入值
+        .previous_output = 0, // 初始上一次输出值
+        .output = 0, // 初始输出值
+        .vtable = &lpf1_vtable // 虚函数表指针
+    },
+    .last_update_timestamp_ms = 0, // 初始上次更新数据的时间戳，单位为毫秒
     .type = M3508, // 电机类型
     .id = 0x201, // 电机ID
     .encoder_value = 0, // 初始编码器值
     .RPM = 0, // 初始速度
+    .filtered_RPM = 0, // 初始速度经过滤波后的值
     .current = 0, // 初始电流
     .temperature = 0, // 初始温度
     .vptr = &motor_vtable // 虚函数表指针
 };
 
+// 电机2实例
 Motor_t motor2 = {
+    .lpf1_rpm = {
+        .alpha = 0.2f, // 低通滤波器的平滑因子，取值范围为0到1
+        .input = 0, // 初始输入值
+        .previous_output = 0, // 初始上一次输出值
+        .output = 0, // 初始输出值
+        .vtable = &lpf1_vtable // 虚函数表指针
+    },
+    .last_update_timestamp_ms = 0, // 初始上次更新数据的时间戳，单位为毫秒
     .type = M3508, // 电机类型
     .id = 0x202, // 电机ID
     .encoder_value = 0, // 初始编码器值
     .RPM = 0, // 初始速度
+    .filtered_RPM = 0, // 初始速度经过滤波后的值
     .current = 0, // 初始电流
     .temperature = 0, // 初始温度
     .vptr = &motor_vtable // 虚函数表指针
 };
 
+// 电机3实例
 Motor_t motor3 = {
+    .lpf1_rpm = {
+        .alpha = 0.2f, // 低通滤波器的平滑因子，取值范围为0到1
+        .input = 0, // 初始输入值
+        .previous_output = 0, // 初始上一次输出值
+        .output = 0, // 初始输出值
+        .vtable = &lpf1_vtable // 虚函数表指针
+    },
+    .last_update_timestamp_ms = 0, // 初始上次更新数据的时间戳，单位为毫秒
     .type = M3508, // 电机类型
     .id = 0x203, // 电机ID
     .encoder_value = 0, // 初始编码器值
     .RPM = 0, // 初始速度
+    .filtered_RPM = 0, // 初始速度经过滤波后的值
     .current = 0, // 初始电流
     .temperature = 0, // 初始温度
     .vptr = &motor_vtable // 虚函数表指针
 };
 
+// 电机4实例
 Motor_t motor4 = {
+    .lpf1_rpm = {
+        .alpha = 0.2f, // 低通滤波器的平滑因子，取值范围为0到1
+        .input = 0, // 初始输入值
+        .previous_output = 0, // 初始上一次输出值
+        .output = 0, // 初始输出值
+        .vtable = &lpf1_vtable // 虚函数表指针
+    },
+    .last_update_timestamp_ms = 0, // 初始上次更新数据的时间戳，单位为毫秒
     .type = M3508, // 电机类型
     .id = 0x204, // 电机ID
     .encoder_value = 0, // 初始编码器值
     .RPM = 0, // 初始速度
+    .filtered_RPM = 0, // 初始速度经过滤波后的值
     .current = 0, // 初始电流
     .temperature = 0, // 初始温度
     .vptr = &motor_vtable // 虚函数表指针
 };
 
+// DR16遥控器虚函数表实例
 DR16_vtable_t dr16_vtable = {
     .data_update = DR16_DataUpdate, // DR16数据更新函数指针
     .get_ch0 = DR16_GetCh0, // 获取通道0数据函数指针
@@ -61,6 +109,7 @@ DR16_vtable_t dr16_vtable = {
     .get_s2 = DR16_GetS2 // 获取开关2状态函数指针
 };
 
+// DR16遥控器数据实例
 DR16_Data_t dr16_data = {
     .ch0 = 0, // 初始通道0数据
     .ch1 = 0, // 初始通道1数据

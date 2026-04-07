@@ -37,3 +37,16 @@ const char *BSP_UART_GetName(UARTBus_t *self)
     return self->name;
 }
 
+void uart_send(UARTBus_t *self, uint8_t *data, uint16_t length)
+{
+    // 地址检查
+    CHECK_PTR(self);
+    CHECK_PTR(data);
+    
+    // 发送数据
+    if (HAL_UART_Transmit_DMA(self->huart, data, length) != HAL_OK)
+    {
+        // 发送数据失败，进行错误处理
+        INIT_ERROR();
+    }
+}

@@ -2,6 +2,7 @@
 #define __DEVICE_MOTOR_H__
 
 #include <stdint.h>
+#include "filter_lpf1.h"
 
 // 电机类型枚举
 typedef enum
@@ -19,10 +20,13 @@ typedef struct
 {
     Motor_vtable_t *vptr; // 虚函数表指针
 
+    LPF1_t lpf1_rpm; // 电机速度低通滤波器
+
     Motor_Type type; // 电机类型
     uint32_t id; // 电机ID
     int16_t encoder_value; // 电机编码器值
     int16_t RPM; // 电机速度
+    int16_t filtered_RPM; // 电机速度经过滤波后的值
     int16_t current; // 电机电流
     uint8_t temperature; // 电机温度
 
@@ -42,7 +46,8 @@ struct Motor_vtable_struct
     float (*get_speed_rad_per_sec)(Motor_t *motor); // 获取电机每秒转速的函数指针
     int16_t (*get_encoder_value)(Motor_t *motor); // 获取电机编码器值的函数指针
     int16_t (*get_current)(Motor_t *motor); // 获取电机电流的函数指针
-
+    uint8_t (*get_temperature)(Motor_t *motor); // 获取电机温度的函数指针
+    int16_t (*get_rpm_value_filtered)(Motor_t *motor); // 获取电机速度经过滤波后的函数指针
 };
 
 // 电机相关函数声明
@@ -53,5 +58,6 @@ int16_t Motor_GetSpeedRPM(Motor_t *motor); // 获取电机每分钟转速函数�
 float Motor_GetSpeedRadPerSec(Motor_t *motor); // 获取电机每秒转速函数声明
 int16_t Motor_GetEncoderValue(Motor_t *motor); // 获取电机编码器值函数声明
 int16_t Motor_GetCurrent(Motor_t *motor); // 获取电机电流函数声明
-
+uint8_t Motor_GetTemperature(Motor_t *motor); // 获取电机温度函数声明
+int16_t Motor_GetRPMFiltered(Motor_t *motor); // 获取电机速度经过滤波后的函数声明
 #endif /* __DEVICE_MOTOR_H__ */

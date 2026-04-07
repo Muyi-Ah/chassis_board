@@ -1,5 +1,7 @@
 #include "init.h"
 #include "bsp_instance.h"
+#include <stddef.h>
+#include "user_register.h"
 
 void System_Init(void)
 {
@@ -8,12 +10,16 @@ void System_Init(void)
     // 注册用户回调函数，将其作为CAN接收回调函数
     User_Callback_Register();
 
-    if(can_bus1.vptr->start_recv != NULL)
+    if(can_bus_1.vptr->start_recv != NULL)
     {
-        can_bus1.vptr->start_recv(&can_bus1); // 启动CAN总线接收
+        can_bus_1.vptr->start_recv(&can_bus_1); // 启动CAN总线接收
     }
-    if(uart_bus1.vptr->start_recv != NULL)
+    if(uart_bus_6.vptr->start_recv != NULL)
     {
-        uart_bus1.vptr->start_recv(&uart_bus1); // 启动UART总线接收
+        uart_bus_6.vptr->start_recv(&uart_bus_6); // 启动UART总线接收
+    }
+    if(uart_bus_2.vptr->start_recv != NULL)
+    {
+        uart_bus_2.vptr->start_recv(&uart_bus_2); // 启动UART总线接收
     }
 }

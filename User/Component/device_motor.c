@@ -16,6 +16,8 @@ void Motor_DataUpdate(Motor_t *motor, uint8_t *data)
 
     // 更新上次更新数据的时间戳
     motor->last_update_timestamp_ms = Get_Time_ms(); // 获取当前时间戳，单位为毫秒
+
+    motor->filtered_RPM = motor->lpf1_rpm.vtable->compute(&motor->lpf1_rpm, motor->RPM); // 使用低通滤波器过滤速度
 }
 
 /**
@@ -79,3 +81,15 @@ int16_t Motor_GetCurrent(Motor_t *motor)
 {
     return motor->current; // 返回电机电流
 }
+
+/**
+ * @brief 获取电机温度
+ * @param motor 电机对象指针
+ * @return 电机温度
+ */
+uint8_t Motor_GetTemperature(Motor_t *motor)
+{
+    return motor->temperature; // 返回电机温度
+}
+
+

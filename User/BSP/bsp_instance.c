@@ -1,13 +1,14 @@
 #include "bsp_instance.h"
+#include "bsp_can.h"
+#include "bsp_uart.h"
+#include "can.h"
+#include "usart.h"
 #include "fatal_error.h"
-
-extern CAN_HandleTypeDef hcan1;
-extern UART_HandleTypeDef huart6;
 
 /**
  * @brief CAN1总线实例对象
  */
-CANBus_t can_bus1 = {
+CANBus_t can_bus_1 = {
 
     .hcan = &hcan1, // 初始化CAN句柄，可以根据需要进行配置
     .id = CAN_BUS_ID_1,
@@ -38,7 +39,7 @@ CANBus_t can_bus1 = {
 };
 
 static CANBus_t *can_bus_table[] = {
-    &can_bus1
+    &can_bus_1
 };
 
 static CANBus_t *Find_CANBus(CAN_HandleTypeDef *hcan)
@@ -84,7 +85,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 /**
  * @brief UART1总线实例对象
  */
-UARTBus_t uart_bus1 = {
+UARTBus_t uart_bus_6 = {
     .huart = &huart6, // 初始化UART句柄，可以根据需要进行配置
     .id = UART_BUS_ID_6,
     .name = "uart6",
@@ -94,8 +95,20 @@ UARTBus_t uart_bus1 = {
     }
 };
 
+UARTBus_t uart_bus_2 = {
+    .huart = &huart2, // 这里可以根据需要初始化其他UART总线的句柄
+    .id = UART_BUS_ID_2,
+    .name = "uart2",
+    .vptr = &(UARTBus_vtable_t){
+        .start_recv = UART_Start, // 这里可以赋值为实际的启动接收函数
+        .rx_callback = NULL, // 初始化接收回调函数指针为NULL，用户可以通过BSP_UART_RegisterRxCallback函数注册实际的回调函数
+        .send = uart_send // 这里可以赋值为实际的发送函数
+    }
+};
+
 static UARTBus_t *uart_bus_table[] = {
-    &uart_bus1
+    &uart_bus_6,
+    &uart_bus_2
 };
 
 static UARTBus_t *Find_UARTBus(UART_HandleTypeDef *huart)
