@@ -23,3 +23,9 @@ Thumbs.db
 
 # data
 *.csv
+
+# trae docs
+.trae/
+
+# python env
+.venv/
