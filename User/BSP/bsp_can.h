@@ -36,6 +36,7 @@ struct CANBus_struct
 // CAN总线相关函数声明
 void CAN_Start(CANBus_t *self);
 void BSP_CAN_RegisterRxCallback(CANBus_t *self, void (*rx_callback)(CANBus_t *can_bus, uint32_t std_id, uint8_t *data));
+HAL_StatusTypeDef BSP_CAN_Transmit(CANBus_t *self, uint32_t std_id, uint8_t *data, uint16_t len);
 CANBus_Id_t BSP_CAN_GetId(CANBus_t *self);
 const char *BSP_CAN_GetName(CANBus_t *self);
 

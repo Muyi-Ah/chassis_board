@@ -52,21 +52,35 @@ osThreadId_t defaultTaskHandle;
 const osThreadAttr_t defaultTask_attributes = {
   .name = "defaultTask",
   .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityNormal,
+  .priority = (osPriority_t) osPriorityLow,
 };
 /* Definitions for run */
 osThreadId_t runHandle;
 const osThreadAttr_t run_attributes = {
   .name = "run",
   .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityNormal,
+  .priority = (osPriority_t) osPriorityAboveNormal,
 };
 /* Definitions for send */
 osThreadId_t sendHandle;
 const osThreadAttr_t send_attributes = {
   .name = "send",
   .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityAboveNormal,
+  .priority = (osPriority_t) osPriorityNormal,
+};
+/* Definitions for blink */
+osThreadId_t blinkHandle;
+const osThreadAttr_t blink_attributes = {
+  .name = "blink",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityLow,
+};
+/* Definitions for INS */
+osThreadId_t INSHandle;
+const osThreadAttr_t INS_attributes = {
+  .name = "INS",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityHigh,
 };
 
 /* Private function prototypes -----------------------------------------------*/
@@ -77,6 +91,8 @@ const osThreadAttr_t send_attributes = {
 void StartDefaultTask(void *argument);
 extern void runTask(void *argument);
 extern void sendTask(void *argument);
+extern void blinkTask(void *argument);
+extern void INSTask(void *argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
@@ -115,6 +131,12 @@ void MX_FREERTOS_Init(void) {
 
   /* creation of send */
   sendHandle = osThreadNew(sendTask, NULL, &send_attributes);
+
+  /* creation of blink */
+  blinkHandle = osThreadNew(blinkTask, NULL, &blink_attributes);
+
+  /* creation of INS */
+  INSHandle = osThreadNew(INSTask, NULL, &INS_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */

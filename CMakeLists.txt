@@ -56,8 +56,17 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/User/Component/device_instance.c
     ${CMAKE_CURRENT_SOURCE_DIR}/User/Component/user_register.c
     ${CMAKE_CURRENT_SOURCE_DIR}/User/Component/filter_lpf1.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/User/Component/control_pid.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/User/Component/chassis.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/User/Component/bmi088/bmi08a.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/User/Component/bmi088/bmi08g.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/User/Component/bmi088/bmi08xa.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/User/Component/driver_bmi088.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/User/Component/MahonyAHRS/MahonyAHRS.c
+    # ${CMAKE_CURRENT_SOURCE_DIR}/User/Component/MadgwickAHRS/MadgwickAHRS.c
     ${CMAKE_CURRENT_SOURCE_DIR}/User/Application/run.c
     ${CMAKE_CURRENT_SOURCE_DIR}/User/Application/init.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/User/Utils/clamp.c
 )
 
 # Add include paths
@@ -66,7 +75,10 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/User/BSP
     ${CMAKE_CURRENT_SOURCE_DIR}/User/Application
     ${CMAKE_CURRENT_SOURCE_DIR}/User/Component
+    ${CMAKE_CURRENT_SOURCE_DIR}/User/Component/bmi088
     ${CMAKE_CURRENT_SOURCE_DIR}/User/Utils
+    ${CMAKE_CURRENT_SOURCE_DIR}/User/Component/MahonyAHRS
+    # ${CMAKE_CURRENT_SOURCE_DIR}/User/Component/MadgwickAHRS
 )
 
 # Add project symbols (macros)

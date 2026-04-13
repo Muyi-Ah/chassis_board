@@ -27,6 +27,7 @@ typedef struct
     int16_t encoder_value; // 电机编码器值
     int16_t RPM; // 电机速度
     int16_t filtered_RPM; // 电机速度经过滤波后的值
+    float rad_per_sec; // 电机速度（弧度/秒）
     int16_t current; // 电机电流
     uint8_t temperature; // 电机温度
 

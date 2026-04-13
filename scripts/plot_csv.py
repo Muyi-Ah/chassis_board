@@ -89,6 +89,22 @@ def get_columns(total_cols):
         except ValueError:
             print("格式错误，请使用逗号分隔数字。")
 
+def get_scale_factor():
+    print("\n是否需要对数据进行缩放还原？")
+    print("提示: 如果单片机发送前乘以了100，这里请输入 0.01 进行还原。")
+    while True:
+        choice = input("请输入倍率缩放系数 (直接回车默认 1.0 不缩放): ").strip()
+        if not choice:
+            return 1.0
+        try:
+            factor = float(choice)
+            if factor == 0:
+                print("缩放系数不能为 0，请重新输入。")
+                continue
+            return factor
+        except ValueError:
+            print("请输入有效的数字。")
+
 def main():
     print("=== 电机转速数据分析与可视化工具 ===")
     files = find_csv_files()
@@ -115,9 +131,10 @@ def main():
         
         start_row, end_row = get_row_range(total_rows)
         selected_cols = get_columns(total_cols)
+        scale_factor = get_scale_factor()
         
-        # 截取数据
-        sliced_data = data[start_row:end_row, :]
+        # 截取数据并缩放
+        sliced_data = data[start_row:end_row, :] * scale_factor
         
         print("\n=== 量化指标分析结果 ===")
         print(f"{'列号':<8} | {'均值 (Mean)':<12} | {'标准差 (Std Dev)':<15} | {'差分标准差 (Std Diff)':<15}")
@@ -144,9 +161,10 @@ def main():
         print("-" * 65)
         print("提示: 差分标准差 (Std Diff) 越小，说明曲线越平滑 (滤波效果越好)。\n")
         
-        plt.title(f"Motor RPM Data Analysis\nFile: {os.path.basename(filename)} (Rows: {start_row}-{end_row})")
+        title_suffix = f" (Scaled x{scale_factor})" if scale_factor != 1.0 else ""
+        plt.title(f"Data Analysis{title_suffix}\nFile: {os.path.basename(filename)} (Rows: {start_row}-{end_row})")
         plt.xlabel("Sample Index (Time)")
-        plt.ylabel("RPM")
+        plt.ylabel("Value")
         plt.legend()
         plt.grid(True, linestyle='--', alpha=0.6)
         plt.tight_layout()

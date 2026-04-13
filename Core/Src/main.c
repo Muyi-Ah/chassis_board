@@ -21,6 +21,7 @@
 #include "cmsis_os.h"
 #include "can.h"
 #include "dma.h"
+#include "spi.h"
 #include "usart.h"
 #include "gpio.h"
 
@@ -96,6 +97,7 @@ int main(void)
   MX_CAN1_Init();
   MX_USART2_UART_Init();
   MX_USART6_UART_Init();
+  MX_SPI2_Init();
   /* USER CODE BEGIN 2 */
   System_Init();
   /* USER CODE END 2 */

@@ -9,10 +9,10 @@ typedef struct
 {
     DR16_vtable_t *vptr; // 虚函数表指针
 
-    uint16_t ch0; // 通道0
-    uint16_t ch1; // 通道1
-    uint16_t ch2; // 通道2
-    uint16_t ch3; // 通道3
+    float ch0; // 通道0
+    float ch1; // 通道1
+    float ch2; // 通道2
+    float ch3; // 通道3
     uint8_t s1;   // 开关1
     uint8_t s2;   // 开关2
 } DR16_Data_t;
