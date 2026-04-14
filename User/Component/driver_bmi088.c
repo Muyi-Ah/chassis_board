@@ -11,6 +11,9 @@
 
 #define GRAVITY_ACCEL 9.80665f // 重力加速度（m/s^2）
 
+/**
+ * @brief 初始化BMI088设备
+ */
 void driver_bmi088_init(void)
 {
     // 初始化BMI088设备
@@ -96,12 +99,13 @@ void driver_bmi088_accel_to_ms2(struct bmi08_sensor_data *raw_accel, struct bmi0
     out_accel_ms2->y = (float)raw_accel->y * ACCEL_MS2_FACTOR;
     out_accel_ms2->z = (float)raw_accel->z * ACCEL_MS2_FACTOR;
 
-    // 2. 减去零偏 (如果已校准)
-    if (offset->is_calibrated) {
-        out_accel_ms2->x -= offset->accel_x;
-        out_accel_ms2->y -= offset->accel_y;
-        out_accel_ms2->z -= offset->accel_z;
-    }
+    // 加速度计现有条件下无法校准
+    // // 2. 减去零偏 (如果已校准)
+    // if (offset->is_calibrated) {
+    //     out_accel_ms2->x -= offset->accel_x;
+    //     out_accel_ms2->y -= offset->accel_y;
+    //     out_accel_ms2->z -= offset->accel_z;
+    // }
 }
 
 // ============================================================================
@@ -156,8 +160,12 @@ void driver_bmi088_quaternion_to_euler(float q0, float q1, float q2, float q3, s
  * @param[in]  accel_ms2 : 指向 bmi08_sensor_data_f 结构体的指针，包含原始加速度计数据（单位：m/s^2）
  * @param[out] accel_ms2_body : 指向 bmi08_sensor_data_f 结构体的指针，用于存储去除重力加速度后的加速度计数据（单位：m/s^2）
  */
-void driver_bmi088_body_gravity(struct bmi08_sensor_data_f *accel_ms2, struct bmi08_sensor_data_f *accel_ms2_body, struct euler_angles *euler)
+void driver_bmi088_body_gravity(struct bmi08_sensor_data_f *accel_ms2, struct bmi08_sensor_data_f *accel_ms2_body, struct euler_angles *euler, float gravity_accel)
 {
-    accel_ms2_body->x = accel_ms2->x + GRAVITY_ACCEL * sinf(euler->pitch_rad);
-    accel_ms2_body->y = accel_ms2->y - GRAVITY_ACCEL * sinf(euler->roll_rad);
+    float temp_component = gravity_accel * cosf(euler->pitch_rad);
+
+    accel_ms2_body->x = accel_ms2->x + gravity_accel * sinf(euler->pitch_rad);
+    accel_ms2_body->y = accel_ms2->y - temp_component * sinf(euler->roll_rad);
+    // Z轴目前未使用，该计算不知道是否正确
+    // accel_ms2_body->z = temp_component * cosf(euler->roll_rad);
 }

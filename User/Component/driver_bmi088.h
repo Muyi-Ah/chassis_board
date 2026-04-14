@@ -43,6 +43,6 @@ void driver_bmi088_accel_to_ms2(struct bmi08_sensor_data *raw_accel, struct bmi0
 void driver_bmi088_quaternion_to_euler(float q0, float q1, float q2, float q3, struct euler_angles *euler);
 
 // 去除重力加速度声明
-void driver_bmi088_body_gravity(struct bmi08_sensor_data_f *accel_ms2, struct bmi08_sensor_data_f *accel_ms2_body, struct euler_angles *euler);
+void driver_bmi088_body_gravity(struct bmi08_sensor_data_f *accel_ms2, struct bmi08_sensor_data_f *accel_ms2_body, struct euler_angles *euler, float gravity_accel);
 
 #endif // __DRIVER_BMI088_H__

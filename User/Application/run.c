@@ -280,7 +280,7 @@ void sendTask(void *argument)
 
 // 引用外部四元数
 extern volatile float q0, q1, q2, q3;
-
+extern float gravity_accel;
 void INSTask(void *argument)
 {
     // === 1. IMU 零偏校准 (前3秒) ===
@@ -290,7 +290,7 @@ void INSTask(void *argument)
     
     // 用于累加的变量 (使用双精度防止累加溢出和精度丢失)
     double sum_gyro_x = 0, sum_gyro_y = 0, sum_gyro_z = 0;
-    // double sum_accel_x = 0, sum_accel_y = 0, sum_accel_z = 0;
+    double sum_accel_x = 0, sum_accel_y = 0, sum_accel_z = 0;
     
     // 临时存储转换后的物理单位，但不带零偏
     struct bmi08_sensor_data_f temp_gyro, temp_accel;
@@ -309,9 +309,9 @@ void INSTask(void *argument)
         sum_gyro_x += temp_gyro.x;
         sum_gyro_y += temp_gyro.y;
         sum_gyro_z += temp_gyro.z;
-        // sum_accel_x += temp_accel.x;
-        // sum_accel_y += temp_accel.y;
-        // sum_accel_z += temp_accel.z;
+        sum_accel_x += temp_accel.x;
+        sum_accel_y += temp_accel.y;
+        sum_accel_z += temp_accel.z;
 
         sample_count++;
         
@@ -329,9 +329,12 @@ void INSTask(void *argument)
     // 对于 Mahony 算法而言，加速度计的常数零偏对最终姿态（特别是 Pitch 和 Roll）影响很小。
     // 因此，行业标准做法是：每次上电只校准陀螺仪零偏，不对加速度计做上电动态零偏校准。
     // 加速度计如果真需要校准，通常是在工厂用六面椭球拟合法（六面校准）算出一套死参数写在 Flash 里。
-    bmi088_offset.accel_x = 0.0f;
-    bmi088_offset.accel_y = 0.0f;
-    bmi088_offset.accel_z = 0.0f;
+    bmi088_offset.accel_x = (float)(sum_accel_x / CALIBRATION_SAMPLES);
+    bmi088_offset.accel_y = (float)(sum_accel_y / CALIBRATION_SAMPLES);
+    bmi088_offset.accel_z = (float)(sum_accel_z / CALIBRATION_SAMPLES);
+    gravity_accel = (float)sqrtf(bmi088_offset.accel_x * bmi088_offset.accel_x + 
+                                    bmi088_offset.accel_y * bmi088_offset.accel_y + 
+                                    bmi088_offset.accel_z * bmi088_offset.accel_z);
     
     bmi088_offset.is_calibrated = 1; // 标记校准完成
 
@@ -361,8 +364,8 @@ void INSTask(void *argument)
         // 4. 提取欧拉角
         driver_bmi088_quaternion_to_euler(q0, q1, q2, q3, &euler_angles);
 
-        // 5. 获取去除重力分量后的加速度
-        driver_bmi088_body_gravity(&accel_ms2, &accel_ms2_body, &euler_angles);
+        // 5. 获取去除重力分量后的加速度计数据
+        driver_bmi088_body_gravity(&accel_ms2, &accel_ms2_body, &euler_angles, gravity_accel);
 
         TickType_t current_tick = xTaskGetTickCount();
         osDelayUntil(current_tick + pdMS_TO_TICKS(1)); // 每1毫秒执行一次
