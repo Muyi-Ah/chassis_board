@@ -72,11 +72,13 @@ void kalman_init(struct KalmanFilter *kf)
     kf->Q_data[4*5 + 4] = 1e-2f; // vyb
 
     // 初始化状态协方差 P
-    kf->P_data[0*5 + 0] = 1.0f;
-    kf->P_data[1*5 + 1] = 1.0f;
-    kf->P_data[2*5 + 2] = 1.0f;
-    kf->P_data[3*5 + 3] = 1.0f;
-    kf->P_data[4*5 + 4] = 1.0f;
+    // 由于底盘总是在完全静止的状态下启动开机，因此初始状态 [x, y, theta, vxb, vyb] 都极度确定为 0
+    // 将初始协方差设置得非常小，表示对初始状态有极高的置信度，这能有效抑制刚开机时由于传感器噪声带来的位姿跳变
+    kf->P_data[0*5 + 0] = 1e-4f; // x: 初始位置极度确定
+    kf->P_data[1*5 + 1] = 1e-4f; // y: 初始位置极度确定
+    kf->P_data[2*5 + 2] = 1e-4f; // theta: 初始朝向极度确定
+    kf->P_data[3*5 + 3] = 1e-4f; // vxb: 初始完全静止，速度确定为 0
+    kf->P_data[4*5 + 4] = 1e-4f; // vyb: 初始完全静止，速度确定为 0
     
     // ZUPT 初始化
     kf->is_stationary = false;
