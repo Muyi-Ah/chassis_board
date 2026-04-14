@@ -98,10 +98,12 @@ void runTask(void *argument)
     {
         if(dr16_data.s1 == 3)
         {
+            // 遥控器控制底盘速度
             chassis_control_velocity.vx = 0.8f * dr16_data.ch1 / 660.0f;
             chassis_control_velocity.vy = -(0.8f * dr16_data.ch0 / 660.0f);
             chassis_control_velocity.vw = -(1.5f * dr16_data.ch2 / 660.0f);
 
+            // 对目标速度进行限制
             clamp(&chassis_control_velocity.vx, -MAX_ACCEL_LINEAR, MAX_ACCEL_LINEAR);
             clamp(&chassis_control_velocity.vy, -MAX_ACCEL_LINEAR, MAX_ACCEL_LINEAR);
             clamp(&chassis_control_velocity.vw, -MAX_ACCEL_ANGULAR, MAX_ACCEL_ANGULAR);
@@ -137,6 +139,7 @@ void runTask(void *argument)
         // 将车轮的目标角速度 (rad/s) 乘以减速比，转换为电机转子的目标角速度 (rad/s)
         float reduction_ratio = 3591.0f / 187.0f;
 
+        // 设置每个电机的目标角速度
         pid_speed_motor1.setpoint = motor_control_velocity.w_lf * reduction_ratio;
         pid_speed_motor2.setpoint = motor_control_velocity.w_rf * reduction_ratio;
         pid_speed_motor3.setpoint = motor_control_velocity.w_rr * reduction_ratio;
@@ -177,6 +180,7 @@ void runTask(void *argument)
         const float VELOCITY_DEADZONE = 0.005f;
         const float OMEGA_DEADZONE = 0.01f;
 
+        // 计算旋转角度
         if (!(fabsf(chassis_observe_velocity_filtered.vw) < OMEGA_DEADZONE))
         {
             chassis_position.theta += chassis_observe_velocity_filtered.vw * 0.001f;
@@ -203,6 +207,7 @@ void runTask(void *argument)
             current_vy = 0.0f;
         }
 
+        // 计算位移量
         float delta_x = (current_vx * cosf(euler_angles.yaw_rad) - 
                         current_vy * sinf(euler_angles.yaw_rad)) * 0.001f;
 
@@ -355,6 +360,9 @@ void INSTask(void *argument)
 
         // 4. 提取欧拉角
         driver_bmi088_quaternion_to_euler(q0, q1, q2, q3, &euler_angles);
+
+        // 5. 获取去除重力分量后的加速度
+        driver_bmi088_body_gravity(&accel_ms2, &accel_ms2_body, &euler_angles);
 
         TickType_t current_tick = xTaskGetTickCount();
         osDelayUntil(current_tick + pdMS_TO_TICKS(1)); // 每1毫秒执行一次

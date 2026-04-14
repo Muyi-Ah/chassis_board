@@ -38,4 +38,7 @@ extern struct euler_angles euler_angles; // 声明欧拉角实例对象
 
 extern struct imu_offset bmi088_offset; // IMU 零偏配置实例
 
+extern struct bmi08_sensor_data_f accel_ms2_body; // 去除重力加速度后的加速度计数据实例（m/s^2）
+
+
 #endif /* __DEVICE_INSTANCE_H__ */

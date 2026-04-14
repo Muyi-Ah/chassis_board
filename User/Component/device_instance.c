@@ -311,6 +311,7 @@ struct bmi08_sensor_data_f accel_ms2 = {
     .z = 0,
 };
 
+// 欧拉角实例
 struct euler_angles euler_angles = {
     .pitch_rad = 0,
     .roll_rad = 0,
@@ -320,6 +321,7 @@ struct euler_angles euler_angles = {
     .yaw_deg = 0,
 };
 
+// BMI088校准数据实例
 struct imu_offset bmi088_offset = {
     .gyro_x = 0.0f,
     .gyro_y = 0.0f,
@@ -328,4 +330,11 @@ struct imu_offset bmi088_offset = {
     .accel_y = 0.0f,
     .accel_z = 0.0f,
     .is_calibrated = 0, // 初始未校准
+};
+
+// 去除重力加速度后的加速度计数据实例（m/s^2）
+struct bmi08_sensor_data_f accel_ms2_body = {
+    .x = 0,
+    .y = 0,
+    .z = 0,
 };

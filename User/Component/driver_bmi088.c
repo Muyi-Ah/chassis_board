@@ -9,6 +9,8 @@
 #include <stdint.h>
 #include <math.h>
 
+#define GRAVITY_ACCEL 9.80665f // 重力加速度（m/s^2）
+
 void driver_bmi088_init(void)
 {
     // 初始化BMI088设备
@@ -147,4 +149,15 @@ void driver_bmi088_quaternion_to_euler(float q0, float q1, float q2, float q3, s
     euler->pitch_deg = euler->pitch_rad * RAD_TO_DEG;
     euler->roll_deg  = euler->roll_rad  * RAD_TO_DEG;
     euler->yaw_deg   = euler->yaw_rad   * RAD_TO_DEG;
+}
+
+/**
+ * @brief 从加速度计数据中去除重力加速度组件
+ * @param[in]  accel_ms2 : 指向 bmi08_sensor_data_f 结构体的指针，包含原始加速度计数据（单位：m/s^2）
+ * @param[out] accel_ms2_body : 指向 bmi08_sensor_data_f 结构体的指针，用于存储去除重力加速度后的加速度计数据（单位：m/s^2）
+ */
+void driver_bmi088_body_gravity(struct bmi08_sensor_data_f *accel_ms2, struct bmi08_sensor_data_f *accel_ms2_body, struct euler_angles *euler)
+{
+    accel_ms2_body->x = accel_ms2->x + GRAVITY_ACCEL * sinf(euler->pitch_rad);
+    accel_ms2_body->y = accel_ms2->y - GRAVITY_ACCEL * sinf(euler->roll_rad);
 }
