@@ -57,6 +57,22 @@ def main():
     if not port_name:
         return
 
+    # 询问用户缩放倍数
+    while True:
+        try:
+            scale_input = input("请输入数据缩放除数 (即下位机乘了多少发过来，直接回车默认 1000): ")
+            if not scale_input.strip():
+                scale_factor = 1000.0
+            else:
+                scale_factor = float(scale_input)
+            
+            if scale_factor == 0:
+                print("除数不能为 0，请重新输入。")
+                continue
+            break
+        except ValueError:
+            print("请输入有效的数字。")
+
     # 生成带时间戳的文件名
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     filename = f"data_{timestamp}.csv"
@@ -67,6 +83,7 @@ def main():
         ser = serial.Serial(port_name, BAUD_RATE, timeout=0.1)
         print("连接成功！")
         print(f"开始接收数据并保存到: {filename}")
+        print(f"当前数据除数: {scale_factor}")
         print("按 [ESC] 键 或 Ctrl+C 停止接收并退出。\n")
         
         # 启动后台线程监听 ESC
@@ -74,8 +91,8 @@ def main():
         listener_thread.start()
         
         with open(filename, 'w', encoding='utf-8') as f:
-            # 可以根据需要在这里写入 CSV 表头
-            # f.write("Motor1_RPM,Motor1_Filtered,Motor2_RPM,Motor2_Filtered,Motor3_RPM,Motor3_Filtered,Motor4_RPM,Motor4_Filtered\n")
+            # 写入 CSV 表头
+            f.write("vx,vy,vw\n")
             
             while running:
                 if ser.in_waiting > 0:
@@ -83,11 +100,30 @@ def main():
                         # 读取一行并解码，去除两端空白字符
                         line = ser.readline().decode('utf-8').strip()
                         if line:
-                            # 写入文件并立即刷新缓冲区，防止数据丢失
-                            f.write(line + "\n")
-                            f.flush()
-                            # 同时在控制台打印方便观察
-                            print(f"Rx: {line}")
+                            try:
+                                # 兼容逗号分隔或空格分隔
+                                parts = line.split(',') if ',' in line else line.split()
+                                if len(parts) == 3:
+                                    # 将整数还原为真实浮点数
+                                    vx = int(parts[0]) / scale_factor
+                                    vy = int(parts[1]) / scale_factor
+                                    vw = int(parts[2]) / scale_factor
+                                    
+                                    # 格式化为浮点数并写入 CSV
+                                    parsed_line = f"{vx:.3f},{vy:.3f},{vw:.3f}"
+                                    f.write(parsed_line + "\n")
+                                    f.flush()
+                                    print(f"Rx: {parsed_line}")
+                                else:
+                                    # 格式不符时直接保存原始数据
+                                    f.write(line + "\n")
+                                    f.flush()
+                                    print(f"Rx (Raw): {line}")
+                            except ValueError:
+                                # 解析失败时也保存原始数据
+                                f.write(line + "\n")
+                                f.flush()
+                                print(f"Rx (Raw): {line}")
                     except UnicodeDecodeError:
                         print("Rx: [解码错误, 可能波特率不匹配或包含二进制数据]")
                 else:

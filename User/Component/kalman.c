@@ -164,8 +164,10 @@ void kalman_update(struct KalmanFilter *kf, float vx_wheel, float vy_wheel, floa
         // 运动状态：信任IMU高频预测，降低轮速信任度（防打滑），完全忽略角度伪观测（让Mahony自由发挥）
         kf->Z_data[2] = kf->X_data[2]; // Z设为预测值，制造0残差
         
-        kf->R_data[0*3 + 0] = 0.05f;   // vx_wheel noise (稍微大点防打滑)
-        kf->R_data[1*3 + 1] = 0.05f;   // vy_wheel noise
+        // 移除了前端低通滤波后，轮速计数据会更抖（包含更多高频毛刺）
+        // 适当调大 R 值，让 EKF 承担起滤波的任务，同时应对麦轮打滑
+        kf->R_data[0*3 + 0] = 0.1f;    // vx_wheel noise (移除低通后调大)
+        kf->R_data[1*3 + 1] = 0.15f;   // vy_wheel noise (横移打滑更严重，设得更大)
         kf->R_data[2*3 + 2] = 1000.0f; // theta noise (极大值，相当于不更新角度)
     }
 

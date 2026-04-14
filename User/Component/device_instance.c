@@ -230,6 +230,7 @@ Chassis_Velocity_t chassis_observe_velocity = {
     .vw = 0 // 初始旋转速度
 };
 
+// 机器人观察速度实例（滤波后）
 Chassis_Velocity_t chassis_observe_velocity_filtered = {
     .vx = 0, // 初始前后速度
     .vy = 0, // 初始左右速度

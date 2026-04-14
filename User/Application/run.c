@@ -22,7 +22,6 @@
 // EKF 底盘定位滤波器实例
 struct KalmanFilter chassis_kf;
 
-
 /** 
  * @brief 快速整型转字符串函数
  * @param str 字符串缓冲区
@@ -252,8 +251,8 @@ void runTask(void *argument)
         kalman_predict(&chassis_kf, accel_ms2_body.x, accel_ms2_body.y, delta_theta, 0.001f);
 
         // EKF 更新步 (传入轮速里程计速度)
-        kalman_update(&chassis_kf, chassis_observe_velocity_filtered.vx, 
-                                   chassis_observe_velocity_filtered.vy, 
+        kalman_update(&chassis_kf, chassis_observe_velocity.vx, 
+                                   chassis_observe_velocity.vy, 
                                    chassis_observe_velocity_filtered.vw);
 
         // 更新到底盘位置结构体供外部使用
@@ -311,6 +310,10 @@ void sendTask(void *argument)
         ptr = fast_itoa(ptr, (int32_t)(chassis_position.x * 1000.0f)); *ptr++ = ',';
         ptr = fast_itoa(ptr, (int32_t)(chassis_position.y * 1000.0f)); *ptr++ = ',';
         ptr = fast_itoa(ptr, (int32_t)(euler_angles.yaw_rad * 1000.0f));
+
+        // ptr = fast_itoa(ptr, (int32_t)(chassis_observe_velocity.vx * 10000.0f)); *ptr++ = ',';
+        // ptr = fast_itoa(ptr, (int32_t)(chassis_observe_velocity.vy * 10000.0f)); *ptr++ = ',';
+        // ptr = fast_itoa(ptr, (int32_t)(chassis_observe_velocity_filtered.vw * 10000.0f));
 
         *ptr++ = '\r';
         *ptr++ = '\n';
