@@ -62,11 +62,20 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/User/Component/bmi088/bmi08g.c
     ${CMAKE_CURRENT_SOURCE_DIR}/User/Component/bmi088/bmi08xa.c
     ${CMAKE_CURRENT_SOURCE_DIR}/User/Component/driver_bmi088.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/User/Component/kalman.c
     ${CMAKE_CURRENT_SOURCE_DIR}/User/Component/MahonyAHRS/MahonyAHRS.c
     # ${CMAKE_CURRENT_SOURCE_DIR}/User/Component/MadgwickAHRS/MadgwickAHRS.c
     ${CMAKE_CURRENT_SOURCE_DIR}/User/Application/run.c
     ${CMAKE_CURRENT_SOURCE_DIR}/User/Application/init.c
     ${CMAKE_CURRENT_SOURCE_DIR}/User/Utils/clamp.c
+
+    # Add DSP source files
+    ${CMAKE_CURRENT_SOURCE_DIR}/User/DSP/Source/MatrixFunctions/arm_mat_init_f32.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/User/DSP/Source/MatrixFunctions/arm_mat_add_f32.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/User/DSP/Source/MatrixFunctions/arm_mat_sub_f32.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/User/DSP/Source/MatrixFunctions/arm_mat_mult_f32.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/User/DSP/Source/MatrixFunctions/arm_mat_inverse_f32.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/User/DSP/Source/MatrixFunctions/arm_mat_trans_f32.c
 )
 
 # Add include paths
@@ -79,11 +88,15 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/User/Utils
     ${CMAKE_CURRENT_SOURCE_DIR}/User/Component/MahonyAHRS
     # ${CMAKE_CURRENT_SOURCE_DIR}/User/Component/MadgwickAHRS
+    ${CMAKE_CURRENT_SOURCE_DIR}/User/DSP/Include
+    ${CMAKE_CURRENT_SOURCE_DIR}/User/DSP/PrivateInclude
 )
 
 # Add project symbols (macros)
 target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined symbols
+    ARM_MATH_CM4
+    __FPU_PRESENT__=1
 )
 
 # Remove wrong libob.a library dependency when using cpp files

@@ -341,3 +341,4 @@ struct bmi08_sensor_data_f accel_ms2_body = {
 
 // 重力加速度实例（m/s^2）
 float gravity_accel = 0.0f;
+

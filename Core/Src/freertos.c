@@ -45,7 +45,7 @@
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN Variables */
-
+osEventFlagsId_t imu_init_event;
 /* USER CODE END Variables */
 /* Definitions for defaultTask */
 osThreadId_t defaultTaskHandle;
@@ -59,28 +59,28 @@ osThreadId_t runHandle;
 const osThreadAttr_t run_attributes = {
   .name = "run",
   .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityAboveNormal,
+  .priority = (osPriority_t) osPriorityHigh,
 };
 /* Definitions for send */
 osThreadId_t sendHandle;
 const osThreadAttr_t send_attributes = {
   .name = "send",
   .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityNormal,
+  .priority = (osPriority_t) osPriorityAboveNormal,
 };
 /* Definitions for blink */
 osThreadId_t blinkHandle;
 const osThreadAttr_t blink_attributes = {
   .name = "blink",
   .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityLow,
+  .priority = (osPriority_t) osPriorityNormal,
 };
 /* Definitions for INS */
 osThreadId_t INSHandle;
 const osThreadAttr_t INS_attributes = {
   .name = "INS",
   .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityHigh,
+  .priority = (osPriority_t) osPriorityRealtime,
 };
 
 /* Private function prototypes -----------------------------------------------*/
@@ -144,6 +144,7 @@ void MX_FREERTOS_Init(void) {
 
   /* USER CODE BEGIN RTOS_EVENTS */
   /* add events, ... */
+  imu_init_event = osEventFlagsNew(NULL);
   /* USER CODE END RTOS_EVENTS */
 
 }

@@ -255,7 +255,8 @@ if __name__ == "__main__":
     print(" - 关闭绘图窗口即可退出程序。")
     print("--------------------------------------------------")
     # 取消 blit=False, cache_frame_data=False 的硬编码要求，尝试让 matplotlib 自己决定最优方式
-    ani = FuncAnimation(fig, update_plot, interval=50)
+    # 为避免无限帧导致的缓存内存溢出警告，显式传入 cache_frame_data=False
+    ani = FuncAnimation(fig, update_plot, interval=50, cache_frame_data=False)
     
     plt.show()
     

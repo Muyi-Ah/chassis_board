@@ -14,9 +14,14 @@
 #include "bmi08.h"
 #include "driver_bmi088.h"
 #include "MahonyAHRS.h"
+#include "kalman.h"
 #include <math.h>
 
-#define M_PI 3.14159265358979323846
+#define M_PI_F 3.14159265358979323846f
+
+// EKF 底盘定位滤波器实例
+struct KalmanFilter chassis_kf;
+
 
 /** 
  * @brief 快速整型转字符串函数
@@ -79,8 +84,10 @@ static inline void slew_rate_limit(float *current_velocity, float target_velocit
  */
 void runTask(void *argument)
 {
-    // 等待 IMU 初始化完成标志 (标志位 0x00000001U 为 1)
-    osThreadFlagsWait(0x00000001U, osFlagsWaitAny, osWaitForever);
+    // 等待 IMU 初始化完成事件 (标志位 0x00000001U 为 1)
+    // 使用 osFlagsNoClear，让其他任务也能等到这个标志
+    extern osEventFlagsId_t imu_init_event;
+    osEventFlagsWait(imu_init_event, 0x00000001U, osFlagsWaitAny | osFlagsNoClear, osWaitForever);
 
     // 用于保存经过斜率限制后的实际控制速度
     float current_vx_cmd = 0.0f;
@@ -94,14 +101,25 @@ void runTask(void *argument)
     const float MAX_ACCEL_ANGULAR = 1.5f; // 角度加速度最大值
     const float MAX_DECEL_ANGULAR = 3.0f; // 角度减速最大值
 
+    // 初始化 EKF 滤波器
+    kalman_init(&chassis_kf);
+
+    uint32_t wake_time = osKernelGetTickCount();
+
+    // M3508 减速比约 19.2032 (3591.0f / 187.0f)
+    // 将车轮的目标角速度 (rad/s) 乘以减速比，转换为电机转子的目标角速度 (rad/s)
+    float reduction_ratio = 3591.0f / 187.0f;
+    float reduction_ratio_inv = 1.0f / reduction_ratio;
+    float dr16_normalize_inv = 1.0f / 660.0f;
+
     while (1)
     {
         if(dr16_data.s1 == 3)
         {
             // 遥控器控制底盘速度
-            chassis_control_velocity.vx = 0.8f * dr16_data.ch1 / 660.0f;
-            chassis_control_velocity.vy = -(0.8f * dr16_data.ch0 / 660.0f);
-            chassis_control_velocity.vw = -(1.5f * dr16_data.ch2 / 660.0f);
+            chassis_control_velocity.vx = 0.8f * dr16_data.ch1 * dr16_normalize_inv;
+            chassis_control_velocity.vy = -(0.8f * dr16_data.ch0 * dr16_normalize_inv);
+            chassis_control_velocity.vw = -(1.5f * dr16_data.ch2 * dr16_normalize_inv);
 
             // 对目标速度进行限制
             clamp(&chassis_control_velocity.vx, -MAX_ACCEL_LINEAR, MAX_ACCEL_LINEAR);
@@ -135,10 +153,6 @@ void runTask(void *argument)
 
         Chassis_InverseKinematics(&chassis_param, &motor_control_velocity, &chassis_control_velocity);
 
-        // M3508 减速比约 19.2032 (3591.0f / 187.0f)
-        // 将车轮的目标角速度 (rad/s) 乘以减速比，转换为电机转子的目标角速度 (rad/s)
-        float reduction_ratio = 3591.0f / 187.0f;
-
         // 设置每个电机的目标角速度
         pid_speed_motor1.setpoint = motor_control_velocity.w_lf * reduction_ratio;
         pid_speed_motor2.setpoint = motor_control_velocity.w_rf * reduction_ratio;
@@ -161,10 +175,10 @@ void runTask(void *argument)
             pid_speed_motor4.output);
 
         /*** 底盘正运动学计算过程 ***/
-        motor_observe_velocity.w_lf = motor1.rad_per_sec / reduction_ratio;
-        motor_observe_velocity.w_rf = motor2.rad_per_sec / reduction_ratio;
-        motor_observe_velocity.w_rr = motor3.rad_per_sec / reduction_ratio;
-        motor_observe_velocity.w_lr = motor4.rad_per_sec / reduction_ratio;
+        motor_observe_velocity.w_lf = motor1.rad_per_sec * reduction_ratio_inv;
+        motor_observe_velocity.w_rf = motor2.rad_per_sec * reduction_ratio_inv;
+        motor_observe_velocity.w_rr = motor3.rad_per_sec * reduction_ratio_inv;
+        motor_observe_velocity.w_lr = motor4.rad_per_sec * reduction_ratio_inv;
 
         // 通过正运动学计算底盘的当前速度
         Chassis_ForwardKinematics(&chassis_param, &chassis_observe_velocity, &motor_observe_velocity);
@@ -177,6 +191,9 @@ void runTask(void *argument)
         /*** 底盘正运动学计算结束 ***/
 
         /*** 里程计算 ***/
+        /* ----------------------------------------------------
+         * 纯轮速航迹推算 (保留用于对比测试)
+         * ----------------------------------------------------
         const float VELOCITY_DEADZONE = 0.005f;
         const float OMEGA_DEADZONE = 0.01f;
 
@@ -188,11 +205,11 @@ void runTask(void *argument)
 
         // 确保旋转角度在 [-pi, pi] 范围内
         // 极其高效的 while 折叠法（因为每 1ms 角度变化极小，while 最多只会执行 1 次）
-        while (chassis_position.theta > M_PI) {
-            chassis_position.theta -= 2.0f * M_PI;
+        while (chassis_position.theta > M_PI_F) {
+            chassis_position.theta -= 2.0f * M_PI_F;
         }
-        while (chassis_position.theta < -M_PI) {
-            chassis_position.theta += 2.0f * M_PI;
+        while (chassis_position.theta < -M_PI_F) {
+            chassis_position.theta += 2.0f * M_PI_F;
         }
 
         // 计算位移量
@@ -217,19 +234,46 @@ void runTask(void *argument)
         // 更新位置
         chassis_position.x += delta_x;
         chassis_position.y += delta_y;
+        */
+
+        /* ----------------------------------------------------
+         * 5态 EKF 数据融合定位
+         * ---------------------------------------------------- */
+        static float last_yaw_rad = 0.0f;
+        float current_yaw_rad = euler_angles.yaw_rad;
+        float delta_theta = current_yaw_rad - last_yaw_rad;
+        
+        // 处理偏航角跨越 -pi 和 pi 的跳变
+        while (delta_theta > M_PI_F)  delta_theta -= 2.0f * M_PI_F;
+        while (delta_theta < -M_PI_F) delta_theta += 2.0f * M_PI_F;
+        last_yaw_rad = current_yaw_rad;
+
+        // EKF 预测步 (传入加速度计和角度增量)
+        kalman_predict(&chassis_kf, accel_ms2_body.x, accel_ms2_body.y, delta_theta, 0.001f);
+
+        // EKF 更新步 (传入轮速里程计速度)
+        kalman_update(&chassis_kf, chassis_observe_velocity_filtered.vx, 
+                                   chassis_observe_velocity_filtered.vy, 
+                                   chassis_observe_velocity_filtered.vw);
+
+        // 更新到底盘位置结构体供外部使用
+        chassis_position.x = chassis_kf.X_data[0];
+        chassis_position.y = chassis_kf.X_data[1];
+        chassis_position.theta = chassis_kf.X_data[2];
 
         /*** 里程计算结束 ***/
 
-        TickType_t current_tick = xTaskGetTickCount();
-        osDelayUntil(current_tick + pdMS_TO_TICKS(1)); // 每1毫秒执行一次
-        // osDelay(pdMS_TO_TICKS(1)); // 延时1毫秒
+        wake_time += pdMS_TO_TICKS(1);
+        osDelayUntil(wake_time); // 绝对延时，保证严格的 1ms 周期
     }
 }
 
 void blinkTask(void *argument)
 {
-    // 等待 IMU 初始化完成标志 (标志位 0x00000001U 为 1)
-    osThreadFlagsWait(0x00000001U, osFlagsWaitAny, osWaitForever);
+    // 等待 IMU 初始化完成事件 (标志位 0x00000001U 为 1)
+    // 使用 osFlagsNoClear，让其他任务也能等到这个标志
+    extern osEventFlagsId_t imu_init_event;
+    osEventFlagsWait(imu_init_event, 0x00000001U, osFlagsWaitAny | osFlagsNoClear, osWaitForever);
 
     while (1)
     {
@@ -243,7 +287,11 @@ void blinkTask(void *argument)
  */
 void sendTask(void *argument)
 {
+    extern osEventFlagsId_t imu_init_event;
+    osEventFlagsWait(imu_init_event, 0x00000001U, osFlagsWaitAny | osFlagsNoClear, osWaitForever);
+
     char buffer[128];
+    uint32_t wake_time = osKernelGetTickCount();
     while (1)
     {
         char *ptr = buffer;
@@ -270,8 +318,8 @@ void sendTask(void *argument)
         uint16_t len = (uint16_t)(ptr - buffer);
         uart_bus_2.vptr->send(&uart_bus_2, (uint8_t *)buffer, len); // 发送数据到UART2
         
-        TickType_t current_tick = xTaskGetTickCount();
-        osDelayUntil(current_tick + pdMS_TO_TICKS(1)); // 每1毫秒执行一次
+        wake_time += pdMS_TO_TICKS(1);
+        osDelayUntil(wake_time); // 每1ms执行一次
     }
 }
 
@@ -296,8 +344,11 @@ void INSTask(void *argument)
     struct bmi08_sensor_data_f temp_gyro, temp_accel;
     struct imu_offset zero_offset = {0}; // 零偏全0结构体，仅用于临时转换
 
+    uint32_t wake_time = osKernelGetTickCount();
+
     while(sample_count < CALIBRATION_SAMPLES)
     {
+        // 读取传感器数据
         bmi08a_get_data(&accel_data, &bmi08_dev);
         bmi08g_get_data(&gyro_data, &bmi08_dev);
 
@@ -315,8 +366,8 @@ void INSTask(void *argument)
 
         sample_count++;
         
-        TickType_t current_tick = xTaskGetTickCount();
-        osDelayUntil(current_tick + pdMS_TO_TICKS(1)); // 1ms 采样一次
+        wake_time += pdMS_TO_TICKS(1);
+        osDelayUntil(wake_time); // 1ms 采样一次
     }
 
     // === 2. 计算平均零偏并写入全局配置 ===
@@ -338,13 +389,9 @@ void INSTask(void *argument)
     
     bmi088_offset.is_calibrated = 1; // 标记校准完成
 
-    // 告诉底盘运行任务 (runTask)，IMU 初始化和零偏校准已经完成
-    extern osThreadId_t runHandle;
-    osThreadFlagsSet(runHandle, 0x00000001U);
-    
-    // 告诉闪烁任务 (blinkTask)，IMU 初始化也完成了
-    extern osThreadId_t blinkHandle;
-    osThreadFlagsSet(blinkHandle, 0x00000001U);
+    // 广播 IMU 初始化和零偏校准完成事件
+    extern osEventFlagsId_t imu_init_event;
+    osEventFlagsSet(imu_init_event, 0x00000001U);
 
     // === 3. 正常运行 Mahony 解算 ===
     while(1)
@@ -367,7 +414,7 @@ void INSTask(void *argument)
         // 5. 获取去除重力分量后的加速度计数据
         driver_bmi088_body_gravity(&accel_ms2, &accel_ms2_body, &euler_angles, gravity_accel);
 
-        TickType_t current_tick = xTaskGetTickCount();
-        osDelayUntil(current_tick + pdMS_TO_TICKS(1)); // 每1毫秒执行一次
+        wake_time += pdMS_TO_TICKS(1);
+        osDelayUntil(wake_time); // 每1毫秒执行一次
     }
 }
