@@ -23,6 +23,18 @@
 struct KalmanFilter chassis_kf;
 
 /** 
+ * @brief 将角度限制在 [-pi, pi] 范围内
+ * @param a 输入角度
+ * @return 限制后的角度
+ */
+static inline float wrap_to_pi(float a)
+{
+    while (a >= M_PI_F) a -= 2.0f * M_PI_F;
+    while (a <  -M_PI_F) a += 2.0f * M_PI_F;
+    return a;
+}
+
+/** 
  * @brief 快速整型转字符串函数
  * @param str 字符串缓冲区
  * @param val 要转换的整型值
@@ -113,28 +125,106 @@ void runTask(void *argument)
 
     while (1)
     {
-        if(dr16_data.s1 == 3)
+        /* ----------------------------------------------------
+         * 5态 EKF 数据融合定位
+         * ---------------------------------------------------- */
+        static float last_yaw_rad = 0.0f;
+        float current_yaw_rad = euler_angles.yaw_rad;
+        float delta_theta = current_yaw_rad - last_yaw_rad;
+        
+        // 处理偏航角跨越 -pi 和 pi 的跳变
+        while (delta_theta > M_PI_F)  delta_theta -= 2.0f * M_PI_F;
+        while (delta_theta < -M_PI_F) delta_theta += 2.0f * M_PI_F;
+        last_yaw_rad = current_yaw_rad;
+
+        // EKF 预测步 (传入加速度计和角度增量)
+        kalman_predict(&chassis_kf, accel_ms2_body.x, accel_ms2_body.y, delta_theta, 0.001f);
+
+        // EKF 更新步 (传入轮速里程计速度)
+        kalman_update(&chassis_kf, chassis_observe_velocity.vx, 
+                                   chassis_observe_velocity.vy, 
+                                   chassis_observe_velocity_filtered.vw);
+
+        // 更新到底盘位置结构体供外部使用
+        chassis_position.x = chassis_kf.X_data[0];
+        chassis_position.y = chassis_kf.X_data[1];
+        chassis_position.theta = chassis_kf.X_data[2];
+
+        /* ----------------------------------------------------
+         * 5态 EKF 数据融合定位结束
+         * ---------------------------------------------------- */
+
+        /* ----------------------------------------------------
+        * 底盘控制
+        * ---------------------------------------------------- */
+        if (dr16_data.s2 == 3) {
+            // chassis_target_position.theta = M_PI_F * 0.25f;
+            chassis_target_position.x = 0.0f;
+            chassis_target_position.y = 1.8f;
+        }
+        else if (dr16_data.s2 == 2) {
+            // chassis_target_position.theta = M_PI_F * 0.5f;
+            chassis_target_position.x = 0.0f;
+            chassis_target_position.y = 0.0f;
+        }
+        else {
+            chassis_target_position.theta = 0.0f;
+            chassis_target_position.x = 0.0f;
+            chassis_target_position.y = 0.0f;
+        }
+
+        if (dr16_data.s1 == 3)
         {
             // 遥控器控制底盘速度
             chassis_control_velocity.vx = 0.8f * dr16_data.ch1 * dr16_normalize_inv;
             chassis_control_velocity.vy = -(0.8f * dr16_data.ch0 * dr16_normalize_inv);
             chassis_control_velocity.vw = -(1.5f * dr16_data.ch2 * dr16_normalize_inv);
-
-            // 对目标速度进行限制
-            clamp(&chassis_control_velocity.vx, -MAX_ACCEL_LINEAR, MAX_ACCEL_LINEAR);
-            clamp(&chassis_control_velocity.vy, -MAX_ACCEL_LINEAR, MAX_ACCEL_LINEAR);
-            clamp(&chassis_control_velocity.vw, -MAX_ACCEL_ANGULAR, MAX_ACCEL_ANGULAR);
         }
-        else if(dr16_data.s1 == 2)
-        {
-            chassis_control_velocity.vw = 0.628f;
-            clamp(&chassis_control_velocity.vw, -0.628f, 0.628f);
+        else if (dr16_data.s1 == 2) {
+            // 世界坐标系下位置控制
+
+            // 设置PID目标值
+            pid_position_x_world.setpoint = chassis_target_position.x;
+            pid_position_y_world.setpoint = chassis_target_position.y;
+
+            // PID计算x、y轴速度
+            pid_position_x_world.vtable->compute(&pid_position_x_world, pid_position_x_world.setpoint, chassis_position.x);
+            pid_position_y_world.vtable->compute(&pid_position_y_world, pid_position_y_world.setpoint, chassis_position.y);
+
+            // PID计算偏航角速度
+            float theta_error = wrap_to_pi(chassis_target_position.theta - euler_angles.yaw_rad);
+            pid_position_theta_world.setpoint = theta_error;
+            pid_position_theta_world.vtable->compute(&pid_position_theta_world, pid_position_theta_world.setpoint, 0.0f);
+
+            // 将世界坐标速度转换为底盘坐标速度
+            float vx_target_world = pid_position_x_world.output;
+            float vy_target_world = pid_position_y_world.output;
+
+            float vx_cmd_chassis = 0.0f;
+            float vy_cmd_chassis = 0.0f;
+
+            // 将世界坐标速度转换为底盘坐标速度
+            WorldSpeedToChassisSpeed(-chassis_position.theta, 
+                                    vx_target_world, 
+                                    vy_target_world, 
+                                    &vx_cmd_chassis, 
+                                    &vy_cmd_chassis);
+
+            // 底盘控制速度设置
+            chassis_control_velocity.vx = vx_cmd_chassis;
+            chassis_control_velocity.vy = vy_cmd_chassis;
+            chassis_control_velocity.vw = pid_position_theta_world.output;
         }
         else {
             chassis_control_velocity.vx = 0.0f;
             chassis_control_velocity.vy = 0.0f;
             chassis_control_velocity.vw = 0.0f;
         }
+
+        // 对目标速度进行限制
+        clamp(&chassis_control_velocity.vx, -MAX_ACCEL_LINEAR, MAX_ACCEL_LINEAR);
+        clamp(&chassis_control_velocity.vy, -MAX_ACCEL_LINEAR, MAX_ACCEL_LINEAR);
+        clamp(&chassis_control_velocity.vw, -MAX_ACCEL_ANGULAR, MAX_ACCEL_ANGULAR);
         
         /*** 底盘斜坡控制 (梯形加减速) ***/
         // 对遥控器产生的瞬态目标速度进行平滑限制
@@ -189,6 +279,10 @@ void runTask(void *argument)
         
         /*** 底盘正运动学计算结束 ***/
 
+        /* ----------------------------------------------------
+         * 底盘控制结束
+         * ---------------------------------------------------- */
+
         /*** 里程计算 ***/
         /* ----------------------------------------------------
          * 纯轮速航迹推算 (保留用于对比测试)
@@ -235,31 +329,6 @@ void runTask(void *argument)
         chassis_position.y += delta_y;
         */
 
-        /* ----------------------------------------------------
-         * 5态 EKF 数据融合定位
-         * ---------------------------------------------------- */
-        static float last_yaw_rad = 0.0f;
-        float current_yaw_rad = euler_angles.yaw_rad;
-        float delta_theta = current_yaw_rad - last_yaw_rad;
-        
-        // 处理偏航角跨越 -pi 和 pi 的跳变
-        while (delta_theta > M_PI_F)  delta_theta -= 2.0f * M_PI_F;
-        while (delta_theta < -M_PI_F) delta_theta += 2.0f * M_PI_F;
-        last_yaw_rad = current_yaw_rad;
-
-        // EKF 预测步 (传入加速度计和角度增量)
-        kalman_predict(&chassis_kf, accel_ms2_body.x, accel_ms2_body.y, delta_theta, 0.001f);
-
-        // EKF 更新步 (传入轮速里程计速度)
-        kalman_update(&chassis_kf, chassis_observe_velocity.vx, 
-                                   chassis_observe_velocity.vy, 
-                                   chassis_observe_velocity_filtered.vw);
-
-        // 更新到底盘位置结构体供外部使用
-        chassis_position.x = chassis_kf.X_data[0];
-        chassis_position.y = chassis_kf.X_data[1];
-        chassis_position.theta = chassis_kf.X_data[2];
-
         /*** 里程计算结束 ***/
 
         wake_time += pdMS_TO_TICKS(1);
@@ -286,6 +355,9 @@ void blinkTask(void *argument)
  */
 void sendTask(void *argument)
 {
+    // 暂停当前线程
+    osThreadSuspend(osThreadGetId());
+
     extern osEventFlagsId_t imu_init_event;
     osEventFlagsWait(imu_init_event, 0x00000001U, osFlagsWaitAny | osFlagsNoClear, osWaitForever);
 

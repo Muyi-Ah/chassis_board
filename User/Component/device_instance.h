@@ -40,5 +40,13 @@ extern struct imu_offset bmi088_offset; // IMU 零偏配置实例
 
 extern struct bmi08_sensor_data_f accel_ms2_body; // 去除重力加速度后的加速度计数据实例（m/s^2）
 
+extern float gravity_accel; // 重力加速度实例（m/s^2）
+
+extern PID_Controller_t pid_position_x_world; // 世界坐标系下x轴位置PID控制器实例对象
+extern PID_Controller_t pid_position_y_world; // 世界坐标系下y轴位置PID控制器实例对象
+extern PID_Controller_t pid_position_theta_world; // 世界坐标系下theta轴位置PID控制器实例对象
+
+extern Chassis_Position_t chassis_target_position; // 世界坐标系下的目标位置实例对象
+
 
 #endif /* __DEVICE_INSTANCE_H__ */

@@ -2,6 +2,7 @@
 #define __CHASSIS_H__
 
 #include "filter_lpf1.h"
+#include "driver_bmi088.h"
 
 typedef struct {
     float Lx; // 轴距的一半（前后轮之间的距离的一半）（单位：米）
@@ -33,5 +34,6 @@ typedef struct {
 
 void Chassis_InverseKinematics(Chassis_Param_t *chassis_param, Motor_Velocity_t *motor_velocity, Chassis_Velocity_t *chassis_velocity);
 void Chassis_ForwardKinematics(Chassis_Param_t *chassis_param, Chassis_Velocity_t *chassis_velocity, Motor_Velocity_t *motor_velocity);
+void WorldSpeedToChassisSpeed(float rad, float world_vx, float world_vy, float *chassis_vx, float *chassis_vy);
 
 #endif // __CHASSIS_H__

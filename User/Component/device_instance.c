@@ -184,7 +184,8 @@ PID_Controller_t pid_speed_motor4 = {
 Chassis_Param_t chassis_param = {
     .Lx = 0.160145f, // 轴距的一半（前后轮之间的距离的一半）（单位：米）(160.145mm)
     .Ly = 0.133735f, // 轮距的一半（左右轮之间的距离的一半）（单位：米）(133.735mm)
-    .Wheel_R = 0.0767f // 轮半径（单位：米）（76.7mm）
+    // .Wheel_R = 0.0767f // 轮半径（单位：米）（76.7mm）
+    .Wheel_R = 0.07798f // 轮半径（单位：米）（76.7mm）
 };
 
 // 机器人控制速度实例
@@ -343,3 +344,38 @@ struct bmi08_sensor_data_f accel_ms2_body = {
 // 重力加速度实例（m/s^2）
 float gravity_accel = 0.0f;
 
+PID_Controller_t pid_position_x_world = {
+    .Kp = 2.5f, // 比例增益
+    .Ki = 0.025f, // 积分增益
+    .Kd = 3.0f, // 微分增益
+    .integral = 0, // 初始积分值
+    .max_integral = 0.5f, // 积分限幅，防止积分过大导致系统不稳定
+    .previous_error = 0, // 初始上次误差值
+    .output = 0, // 初始输出值
+    .vtable = &pid_vtable // 虚函数表指针
+};
+
+PID_Controller_t pid_position_y_world = {
+    .Kp = 2.5f, // 比例增益
+    .Ki = 0.025f, // 积分增益
+    .Kd = 3.0f, // 微分增益
+    .integral = 0, // 初始积分值
+    .max_integral = 0.5f, // 积分限幅，防止积分过大导致系统不稳定
+    .previous_error = 0, // 初始上次误差值
+    .output = 0, // 初始输出值
+    .vtable = &pid_vtable // 虚函数表指针
+};
+
+PID_Controller_t pid_position_theta_world = {
+    .Kp = 2.5f, // 比例增益
+    .Ki = 0.05f, // 积分增益
+    .Kd = 0.0f, // 微分增益
+    .integral = 0, // 初始积分值
+    .max_integral = 1.0f, // 积分限幅，防止积分过大导致系统不稳定
+    .previous_error = 0, // 初始上次误差值
+    .output = 0, // 初始输出值
+    .vtable = &pid_vtable // 虚函数表指针
+};
+
+// 世界坐标系下的目标位置
+Chassis_Position_t chassis_target_position;

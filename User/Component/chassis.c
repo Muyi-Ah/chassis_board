@@ -1,4 +1,5 @@
 #include "chassis.h"
+#include <math.h>
 
 /**
  * @brief 计算底盘逆运动学
@@ -31,4 +32,17 @@ void Chassis_ForwardKinematics(Chassis_Param_t *chassis_param, Chassis_Velocity_
     chassis_velocity->vx = (motor_velocity->w_lf + motor_velocity->w_lr - motor_velocity->w_rr - motor_velocity->w_rf) * R / 4.0f;
     chassis_velocity->vy = (-motor_velocity->w_lf + motor_velocity->w_lr + motor_velocity->w_rr - motor_velocity->w_rf) * R / 4.0f;
     chassis_velocity->vw = (-motor_velocity->w_lf - motor_velocity->w_lr - motor_velocity->w_rr - motor_velocity->w_rf) * R / (4.0f * (K)) * vw_copmp_factor;
+}
+
+/**
+ * @brief 将世界坐标转换为底盘坐标
+ * @param euler_angles 旋转角度（单位：弧度）
+ * @param world_vx 世界坐标速度x轴（单位：米/秒）
+ * @param world_vy 世界坐标速度y轴（单位：米/秒）
+ * @param chassis_vx 底盘坐标速度x轴（单位：米/秒）
+ * @param chassis_vy 底盘坐标速度y轴（单位：米/秒）
+ */
+void WorldSpeedToChassisSpeed(float rad, float world_vx, float world_vy, float *chassis_vx, float *chassis_vy) {
+    *chassis_vx = cosf(rad) * world_vx - sinf(rad) * world_vy;
+    *chassis_vy = sinf(rad) * world_vx + cosf(rad) * world_vy;
 }
